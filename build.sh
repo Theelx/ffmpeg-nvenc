@@ -191,6 +191,17 @@ BuildVpx() {
     make install
 }
 
+BuildSVTAV1() {
+    echo "Compiling SVT-AV1"
+    cd $source_dir
+    git -C SVT-AV1 pull 2> /dev/null || git clone https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    mkdir -p SVT-AV1/build
+    cd SVT-AV1/build
+    PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DCMAKE_BUILD_TYPE=Release -DBUILD_DEC=OFF -DBUILD_SHARED_LIBS=OFF ..
+    PATH="$HOME/bin:$PATH" make -j${cpus}
+    make install
+}
+
 BuildFFmpeg() {
     echo "Compiling ffmpeg"
     cd $source_dir
@@ -218,6 +229,7 @@ BuildFFmpeg() {
         --enable-libwebp \
         --enable-libx264 \
         --enable-libx265 \
+        --enable-libsvtav1 \
         --enable-nonfree \
         --enable-nvenc \
         --enable-pic \
@@ -382,10 +394,12 @@ else
     BuildNasm
     BuildYasm
     BuildX264
+    BuildX265
     BuildFdkAac
     BuildLame
     BuildOpus
     BuildVpx
+    BuildSVTAV1
     BuildFFmpeg
     if [ "$build_obs" ]; then
         BuildOBS
