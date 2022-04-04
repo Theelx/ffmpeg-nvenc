@@ -54,7 +54,7 @@ InstallDependencies() {
         libqt5x11extras5-dev libxcb-xinerama0-dev libvlc-dev libv4l-dev   \
         pkg-config texi2html zlib1g-dev cmake libcurl4-openssl-dev \
         libjack-jackd2-dev libxcomposite-dev x11proto-composite-dev \
-        libx264-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev \
+        libx264-dev libnuma-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev \
         libpulse-dev libx11-dev libxext-dev libxfixes-dev \
         libxi-dev qt5-default qttools5-dev qt5-qmake qtbase5-dev
 }
@@ -125,6 +125,17 @@ BuildX264() {
     cd x264
     ./configure --prefix="$build_dir" --bindir="$bin_dir" --enable-pic --enable-shared
     make -j${cpus}
+    make install
+}
+
+BuildX265() {
+    echo "Compiling libx265"
+    cd $source_dir
+    wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/master.tar.bz2
+    tar xjvf x265.tar.bz2
+    cd multicoreware*/build/linux
+    PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED=off ../../source
+    PATH="$HOME/bin:$PATH" make -j${cpus}
     make install
 }
 
@@ -204,7 +215,9 @@ BuildFFmpeg() {
         --enable-libtheora \
         --enable-libvorbis \
         --enable-libvpx \
+        --enable-libwebp \
         --enable-libx264 \
+        --enable-libx265 \
         --enable-nonfree \
         --enable-nvenc \
         --enable-pic \
