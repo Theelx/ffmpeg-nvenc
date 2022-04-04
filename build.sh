@@ -167,7 +167,7 @@ BuildLame() {
 BuildOpus() {
     echo "Compiling libopus"
     cd $source_dir
-    opus_version="1.1"
+    opus_version="1.3"
     opus_basename="opus-${opus_version}"
     wget -4 "http://downloads.xiph.org/releases/opus/${opus_basename}.tar.gz"
     tar xzf "${opus_basename}.tar.gz"
@@ -180,7 +180,7 @@ BuildOpus() {
 BuildVpx() {
     echo "Compiling libvpx"
     cd $source_dir
-    vpx_version="1.5.0"
+    vpx_version="1.6.1"
     vpx_basename="libvpx-${vpx_version}"
     vpx_url="http://storage.googleapis.com/downloads.webmproject.org/releases/webm/${vpx_basename}.tar.bz2"
     wget -4 $vpx_url
