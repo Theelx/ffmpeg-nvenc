@@ -134,8 +134,8 @@ BuildX265() {
     wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/master.tar.bz2
     tar xjvf x265.tar.bz2
     cd multicoreware*/build/linux
-    PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DENABLE_SHARED=off ../../source
-    PATH="$HOME/bin:$PATH" make -j${cpus}
+    ./configure --prefix="$build_dir" --bindir="$bin_dir"
+    make -j${cpus}
     make install
 }
 
@@ -194,11 +194,11 @@ BuildVpx() {
 BuildSVTAV1() {
     echo "Compiling SVT-AV1"
     cd $source_dir
-    git -C SVT-AV1 pull 2> /dev/null || git clone https://gitlab.com/AOMediaCodec/SVT-AV1.git
-    mkdir -p SVT-AV1/build
-    cd SVT-AV1/build
-    PATH="$HOME/bin:$PATH" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$HOME/ffmpeg_build" -DCMAKE_BUILD_TYPE=Release -DBUILD_DEC=OFF -DBUILD_SHARED_LIBS=OFF ..
-    PATH="$HOME/bin:$PATH" make -j${cpus}
+    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    cd SVT-AV1/Build
+    # https://github.com/AOMediaCodec/SVT-AV1#1-build-and-install-svt-av1
+    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+    make -j${cpus}
     make install
 }
 
