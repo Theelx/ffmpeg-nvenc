@@ -234,6 +234,7 @@ BuildFFmpeg() {
         --enable-nvenc \
         --enable-pic \
         --enable-libxcb \
+        --extra-libs="-lpthread"  \
         --extra-ldexeflags=-pie \
         --enable-shared
     make -j${cpus}
