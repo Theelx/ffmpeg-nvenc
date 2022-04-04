@@ -34,13 +34,13 @@ done
 
 cpus=$(getconf _NPROCESSORS_ONLN)
 source_dir="${root_dir}/source"
-mkdir -p $source_dir
+mkdir -p $source_dir || :
 build_dir="${build_dir:-"${root_dir}/ffmpeg-nvenc"}"
-mkdir -p $build_dir
+mkdir -p $build_dir || :
 bin_dir="${build_dir}/bin"
-mkdir -p $bin_dir
+mkdir -p $bin_dir || :
 inc_dir="${build_dir}/include"
-mkdir -p $inc_dir
+mkdir -p $inc_dir || :
 
 echo "Building FFmpeg in ${build_dir}"
 
@@ -85,7 +85,7 @@ InstallNvidiaSDK() {
 InstallNvCodecIncludes() {
     echo "Installing Nv codec headers"
     cd "$source_dir"
-    git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git
+    git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git || :
     cd nv-codec-headers
     make
     sudo make install
@@ -121,7 +121,7 @@ BuildYasm() {
 BuildX264() {
     echo "Compiling libx264"
     cd $source_dir
-    git clone https://code.videolan.org/videolan/x264/
+    git clone https://code.videolan.org/videolan/x264/ || :
     cd x264
     ./configure --prefix="$build_dir" --bindir="$bin_dir" --enable-pic --enable-shared
     make -j${cpus}
@@ -134,7 +134,7 @@ BuildX265() {
     wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/master.tar.bz2
     tar xjvf x265.tar.bz2
     cd multicoreware*/build/linux
-    ./configure --prefix="$build_dir" --bindir="$bin_dir"
+    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$build_dir" -DENABLE_SHARED=off ../../source && \
     make -j${cpus}
     make install
 }
@@ -194,18 +194,18 @@ BuildVpx() {
 BuildSVTAV1() {
     echo "Compiling SVT-AV1"
     cd $source_dir
-    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git
+    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git || :
     cd SVT-AV1/Build
     # https://github.com/AOMediaCodec/SVT-AV1#1-build-and-install-svt-av1
     cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
     make -j${cpus}
-    make install
+    sudo make install
 }
 
 BuildFFmpeg() {
     echo "Compiling ffmpeg"
     cd $source_dir
-    ffmpeg_version="4.4.2"
+    ffmpeg_version="4.4.1"
     if [ ! -f  ffmpeg-${ffmpeg_version}.tar.bz2 ]; then
         wget -4 http://ffmpeg.org/releases/ffmpeg-${ffmpeg_version}.tar.bz2
     fi
@@ -215,6 +215,7 @@ BuildFFmpeg() {
         --prefix="$build_dir" \
         --extra-cflags="-fPIC -m64 -I${inc_dir}" \
         --extra-ldflags="-L${build_dir}/lib" \
+        --extra-libs="-lpthread" \
         --bindir="$bin_dir" \
         --incdir="$inc_dir" \
         --enable-gpl \
@@ -226,17 +227,17 @@ BuildFFmpeg() {
         --enable-libtheora \
         --enable-libvorbis \
         --enable-libvpx \
-        --enable-libwebp \
         --enable-libx264 \
         --enable-libx265 \
+        --enable-libwebp \
         --enable-libsvtav1 \
         --enable-nonfree \
         --enable-nvenc \
         --enable-pic \
         --enable-libxcb \
-        --extra-libs="-lpthread"  \
         --extra-ldexeflags=-pie \
-        --enable-shared
+        --enable-shared \
+        --pkg-config="pkg-config --static"
     make -j${cpus}
     make install
 
