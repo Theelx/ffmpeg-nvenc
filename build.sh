@@ -52,7 +52,7 @@ InstallDependencies() {
         libfreetype6-dev libgpac-dev libsdl1.2-dev libtheora-dev libtool libva-dev \
         libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev \
         libqt5x11extras5-dev libxcb-xinerama0-dev libvlc-dev libv4l-dev   \
-        pkg-config texi2html zlib1g-dev cmake libcurl4-openssl-dev \
+        pkg-config texi2html zlib1g-dev cmake libcurl4-openssl-dev libwebp-dev \
         libjack-jackd2-dev libxcomposite-dev x11proto-composite-dev \
         libx264-dev libnuma-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev \
         libpulse-dev libx11-dev libxext-dev libxfixes-dev \
@@ -95,7 +95,7 @@ InstallNvCodecIncludes() {
 BuildNasm() {
     echo "Compiling nasm"
     cd $source_dir
-    nasm_version="2.14.02"
+    nasm_version="2.15.05"
     nasm_basename="nasm-${nasm_version}"
     wget -4 http://www.nasm.us/pub/nasm/releasebuilds/${nasm_version}/nasm-${nasm_version}.tar.gz
     tar xzf "${nasm_basename}.tar.gz"
@@ -154,9 +154,9 @@ BuildFdkAac() {
 BuildLame() {
     echo "Compiling libmp3lame"
     cd $source_dir
-    lame_version="3.99.5"
+    lame_version="3.100"
     lame_basename="lame-${lame_version}"
-    wget -4 "http://downloads.sourceforge.net/project/lame/lame/3.99/${lame_basename}.tar.gz"
+    wget -4 "http://downloads.sourceforge.net/project/lame/lame/3.100/${lame_basename}.tar.gz"
     tar xzf "${lame_basename}.tar.gz"
     cd $lame_basename
     ./configure --prefix="$build_dir" --enable-nasm # --disable-shared
