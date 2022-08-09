@@ -191,6 +191,23 @@ BuildVpx() {
     make install
 }
 
+BuildDav1d() {
+    echo "Compiling dav1d"
+    cd $source_dir
+    dav1d_version="0.9.2"
+    dav1d_basename="dav1d-${dav1d_version}"
+    dav1d_url="https://code.videolan.org/videolan/dav1d/-/archive/${dav1d_version}/${dav1d_basename}.tar.bz2"
+    wget -4 $dav1d_url
+    tar xjf "${dav1d_basename}.tar.bz2"
+    cd $dav1d_basename
+    mkdir build || rmdir build && mkdir build
+    cd build
+    meson --default-library=static ..
+    ninja
+    sudo ninja install
+    sudo cp ./tools/dav1d $build_dir/bin/dav1d
+}
+
 BuildSVTAV1() {
     echo "Compiling SVT-AV1"
     cd $source_dir
@@ -205,7 +222,7 @@ BuildSVTAV1() {
 BuildFFmpeg() {
     echo "Compiling ffmpeg"
     cd $source_dir
-    ffmpeg_version="4.4.1"
+    ffmpeg_version="5.1"
     if [ ! -f  ffmpeg-${ffmpeg_version}.tar.bz2 ]; then
         wget -4 http://ffmpeg.org/releases/ffmpeg-${ffmpeg_version}.tar.bz2
     fi
@@ -233,6 +250,7 @@ BuildFFmpeg() {
         --enable-libsvtav1 \
         --enable-nonfree \
         --enable-nvenc \
+        --enable-libdav1d \
         --enable-pic \
         --enable-libxcb \
         --extra-ldexeflags=-pie \
@@ -401,6 +419,7 @@ else
     BuildLame
     BuildOpus
     BuildVpx
+    BuildDav1d
     BuildSVTAV1
     BuildFFmpeg
     if [ "$build_obs" ]; then
