@@ -419,7 +419,7 @@ if [ $1 ]; then
     $1
 else
     # DONT INSTALL DEPS ON 22.04
-    #InstallDependencies
+    InstallDependencies
     InstallNvCodecIncludes
     BuildNasm
     BuildYasm
