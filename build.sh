@@ -53,10 +53,10 @@ InstallDependencies() {
         libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev \
         libqt5x11extras5-dev libxcb-xinerama0-dev libvlc-dev libv4l-dev   \
         pkg-config texi2html zlib1g-dev cmake libcurl4-openssl-dev libwebp-dev \
-        libjack-jackd2-dev libxcomposite-dev x11proto-composite-dev \
+        libjack-jackd2-dev libxcomposite-dev \
         libx264-dev libnuma-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev \
         libpulse-dev libx11-dev libxext-dev libxfixes-dev \
-        libxi-dev qt5-default qttools5-dev qt5-qmake qtbase5-dev
+        libxi-dev qttools5-dev qt5-qmake qtbase5-dev
 }
 
 # TODO Detect running system
@@ -87,6 +87,8 @@ InstallNvCodecIncludes() {
     cd "$source_dir"
     git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git || :
     cd nv-codec-headers
+    # this sets the includes to be at version 11 instead of 12, which matches ubuntu 22.04
+    git checkout f8ae7a49bfef2f99d2c931a791dc3863fda67bf
     make
     sudo make install
     cp -a include/ffnvcodec "$inc_dir"
@@ -95,7 +97,7 @@ InstallNvCodecIncludes() {
 BuildNasm() {
     echo "Compiling nasm"
     cd $source_dir
-    nasm_version="2.15.05"
+    nasm_version="2.16.01"
     nasm_basename="nasm-${nasm_version}"
     wget -4 http://www.nasm.us/pub/nasm/releasebuilds/${nasm_version}/nasm-${nasm_version}.tar.gz
     tar xzf "${nasm_basename}.tar.gz"
@@ -167,7 +169,7 @@ BuildLame() {
 BuildOpus() {
     echo "Compiling libopus"
     cd $source_dir
-    opus_version="1.3"
+    opus_version="1.4"
     opus_basename="opus-${opus_version}"
     wget -4 "http://downloads.xiph.org/releases/opus/${opus_basename}.tar.gz"
     tar xzf "${opus_basename}.tar.gz"
@@ -180,13 +182,17 @@ BuildOpus() {
 BuildVpx() {
     echo "Compiling libvpx"
     cd $source_dir
-    vpx_version="1.6.1"
+    git clone --depth=1 https://github.com/webmproject/libvpx.git || :
+    mkdir build || :
+    cd build
+    vpx_version="1.14.0"
     vpx_basename="libvpx-${vpx_version}"
     vpx_url="http://storage.googleapis.com/downloads.webmproject.org/releases/webm/${vpx_basename}.tar.bz2"
     wget -4 $vpx_url
     tar xjf "${vpx_basename}.tar.bz2"
     cd $vpx_basename
-    ./configure --prefix="$build_dir" --disable-examples --enable-shared --disable-static
+    #./configure --prefix="$build_dir" --disable-examples --enable-shared --disable-static
+    ../libvpx/configure --prefix="$build_dir" --disable-examples --enable-shared --disable-static
     make -j${cpus}
     make install
 }
@@ -194,13 +200,13 @@ BuildVpx() {
 BuildDav1d() {
     echo "Compiling dav1d"
     cd $source_dir
-    dav1d_version="0.9.2"
+    dav1d_version="1.4.0"
     dav1d_basename="dav1d-${dav1d_version}"
     dav1d_url="https://code.videolan.org/videolan/dav1d/-/archive/${dav1d_version}/${dav1d_basename}.tar.bz2"
     wget -4 $dav1d_url
     tar xjf "${dav1d_basename}.tar.bz2"
     cd $dav1d_basename
-    mkdir build || rmdir build && mkdir build
+    mkdir build || :
     cd build
     meson --default-library=static ..
     ninja
@@ -222,13 +228,15 @@ BuildSVTAV1() {
 BuildFFmpeg() {
     echo "Compiling ffmpeg"
     cd $source_dir
-    ffmpeg_version="5.1"
+    ffmpeg_version="6.1"
     if [ ! -f  ffmpeg-${ffmpeg_version}.tar.bz2 ]; then
         wget -4 http://ffmpeg.org/releases/ffmpeg-${ffmpeg_version}.tar.bz2
     fi
     tar xjf ffmpeg-${ffmpeg_version}.tar.bz2
     cd ffmpeg-${ffmpeg_version}
-    PKG_CONFIG_PATH="${build_dir}/lib/pkgconfig" ./configure \
+    echo "$build_dir $inc_dir"
+    echo "$PKG_CONFIG_PATH"
+    PKG_CONFIG_PATH="${build_dir}/lib/pkgconfig:$PKG_CONFIG_PATH" ./configure \
         --prefix="$build_dir" \
         --extra-cflags="-fPIC -m64 -I${inc_dir}" \
         --extra-ldflags="-L${build_dir}/lib" \
@@ -251,6 +259,7 @@ BuildFFmpeg() {
         --enable-nonfree \
         --enable-nvenc \
         --enable-libdav1d \
+        --enable-libpulse \
         --enable-pic \
         --enable-libxcb \
         --extra-ldexeflags=-pie \
@@ -409,7 +418,8 @@ EOF
 if [ $1 ]; then
     $1
 else
-    InstallDependencies
+    # DONT INSTALL DEPS ON 22.04
+    #InstallDependencies
     InstallNvCodecIncludes
     BuildNasm
     BuildYasm
