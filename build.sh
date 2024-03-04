@@ -190,7 +190,7 @@ BuildVpx() {
     vpx_url="https://github.com/webmproject/libvpx/archive/refs/tags/v${vpx_version}.tar.gz"
     wget -4 $vpx_url
     tar xzf "v${vpx_version}.tar.gz"
-    cd $vpx_version
+    cd "v$vpx_version"
     #./configure --prefix="$build_dir" --disable-examples --enable-shared --disable-static
     ../libvpx/configure --prefix="$build_dir" --disable-examples --enable-shared --disable-static
     make -j${cpus}
