@@ -85,7 +85,7 @@ InstallNvidiaSDK() {
 InstallNvCodecIncludes() {
     echo "Installing Nv codec headers"
     cd "$source_dir"
-    git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git || :
+    git clone https://github.com/FFmpeg/nv-codec-headers.git || :
     cd nv-codec-headers
     # this sets the includes to be at version 11 instead of 12, which matches ubuntu 22.04
     git checkout f8ae7a49bfef2f99d2c931a791dc3863fda67bf
