@@ -48,15 +48,21 @@ export PATH=$bin_dir:$PATH
 
 InstallDependencies() {
     echo "Installing dependencies"
-    sudo apt-get -y install git autoconf automake build-essential libass-dev \
-        libfreetype6-dev libgpac-dev libsdl1.2-dev libtheora-dev libtool libva-dev \
+    # for ubuntu 22.04
+    sudo apt-get -y install libtbb2 || :
+    # for ubuntu 24.04+
+    sudo apt-get -y install libtbbmalloc2 || :
+    sudo apt-get -y install git autoconf automake build-essential g++ cmake wget unzip \
+        libass-dev libfreetype6-dev libgpac-dev libsdl1.2-dev libtheora-dev libtool libva-dev \
         libvdpau-dev libvorbis-dev libxcb1-dev libxcb-shm0-dev libxcb-xfixes0-dev \
         libqt5x11extras5-dev libxcb-xinerama0-dev libvlc-dev libv4l-dev   \
         pkg-config texi2html zlib1g-dev cmake libcurl4-openssl-dev libwebp-dev \
         libjack-jackd2-dev libxcomposite-dev \
         libx264-dev libnuma-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev \
         libpulse-dev libx11-dev libxext-dev libxfixes-dev \
-        libxi-dev qttools5-dev qt5-qmake qtbase5-dev librubberband-dev
+        libxi-dev qttools5-dev qt5-qmake qtbase5-dev librubberband-dev \
+        libgtk2.0-dev libtbb-dev libjpeg-dev libpng-dev libtiff-dev \
+        libavformat-dev libavcodec-dev libavutil-dev libswscale-dev
 }
 
 # TODO Detect running system
@@ -103,12 +109,12 @@ InstallNvCodecIncludes() {
 BuildNasm() {
     echo "Compiling nasm"
     cd $source_dir
-    nasm_version="2.16.02"
+    nasm_version="2.16.03"
     nasm_basename="nasm-${nasm_version}"
     wget -4 http://www.nasm.us/pub/nasm/releasebuilds/${nasm_version}/nasm-${nasm_version}.tar.gz
     tar xzf "${nasm_basename}.tar.gz"
     cd $nasm_basename
-    ./configure --prefix="${build_dir}" --bindir="${bin_dir}"
+    ./configure --enable-lto -prefix="${build_dir}" --bindir="${bin_dir}"
     make -j${cpus}
     make install
 }
@@ -131,7 +137,7 @@ BuildX264() {
     cd $source_dir
     git clone https://code.videolan.org/videolan/x264/ || :
     cd x264
-    ./configure --prefix="$build_dir" --bindir="$bin_dir" --enable-pic --enable-shared
+    CPPFLAGS="-march=native" ./configure --prefix="$build_dir" --bindir="$bin_dir" --enable-pic --enable-shared
     make -j${cpus}
     make install
 }
@@ -142,7 +148,7 @@ BuildX265() {
     wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/master.tar.bz2
     tar xjvf x265.tar.bz2
     cd multicoreware*/build/linux
-    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$build_dir" -DENABLE_SHARED=off ../../source && \
+    CPPFLAGS="-march=native" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$build_dir" -DENABLE_SHARED=off -DHIGH_BIT_DEPTH=on -DENABLE_HDR10_PLUS=on ../../source && \
     make -j${cpus}
     make install
 }
@@ -154,7 +160,7 @@ BuildFdkAac() {
     unzip fdk-aac.zip
     cd mstorsjo-fdk-aac*
     autoreconf -fiv
-    ./configure --prefix="$build_dir" # --disable-shared
+    CPPFLAGS="-march=native" ./configure --prefix="$build_dir" # --disable-shared
     make -j${cpus}
     make install
 }
@@ -182,7 +188,7 @@ BuildOpus() {
     cd $opus_basename
     # last two options are for opus 1.5 neural network stuff
     # increases binary size a bit but if you're running nvenc then you probably dont care
-    ./configure --prefix="$build_dir" --enable-osce --enable-dred # --disable-shared
+    CFLAGS="-march=native" ./configure --prefix="$build_dir" --enable-osce --enable-dred # --disable-shared
     make -j${cpus}
     make install
 }
@@ -193,7 +199,7 @@ BuildVpx() {
     git clone --depth=1 https://github.com/webmproject/libvpx.git || :
     mkdir build || :
     cd build
-    vpx_version="1.14.0"
+    vpx_version="1.15.0"
     vpx_basename="v${vpx_version}"
     vpx_url="https://chromium.googlesource.com/webm/libvpx/+archive/${vpx_basename}.tar.gz"
     wget -4 $vpx_url
@@ -227,15 +233,27 @@ BuildSVTAV1() {
     git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git || :
     cd SVT-AV1/Build
     # https://github.com/AOMediaCodec/SVT-AV1#1-build-and-install-svt-av1
-    cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
+    CPPFLAGS="-march=native" cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
     make -j${cpus}
+    sudo make install
+}
+
+BuildOpenCV() {
+    echo "Compiling OpenCV"
+    opencv_version="4.10.0"
+    sudo wget -4 "https://github.com/opencv/opencv/archive/${opencv_version}.zip"
+    sudo unzip "${opencv_version}.zip"
+    cd "opencv-${opencv_version}" && mkdir -p build || :
+    cd build
+    cmake -DHAVE_FFMPEG=ON "../"
+    cmake --build .
     sudo make install
 }
 
 BuildFFmpeg() {
     echo "Compiling ffmpeg"
     cd $source_dir
-    ffmpeg_version="7.0"
+    ffmpeg_version="7.1"
     if [ ! -f  ffmpeg-${ffmpeg_version}.tar.bz2 ]; then
         wget -4 http://ffmpeg.org/releases/ffmpeg-${ffmpeg_version}.tar.bz2
     fi
@@ -271,9 +289,10 @@ BuildFFmpeg() {
         --enable-libxcb \
         --enable-librubberband \
         --enable-openssl \
+        --enable-libopencv \
         --extra-ldexeflags=-pie \
         --enable-shared \
-        --pkg-config="pkg-config --static"
+        --pkg-config="pkg-config --static --cflags opencv4"
     make -j${cpus}
     make install
 
@@ -440,6 +459,7 @@ else
     BuildVpx
     BuildDav1d
     BuildSVTAV1
+    BuildOpenCV
     BuildFFmpeg
     if [ "$build_obs" ]; then
         BuildOBS
