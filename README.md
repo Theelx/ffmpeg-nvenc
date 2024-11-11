@@ -25,7 +25,7 @@ The following command line options are available:
 
 ## TODO
 
-* Add support for multiple distributions (currently only tested on Ubuntu 16.04)
+* Add support for multiple distributions (currently only tested on Ubuntu 22.04 & Linux Mint 22)
 
 ## Supporting the authors
 
