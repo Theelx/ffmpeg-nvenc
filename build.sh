@@ -240,13 +240,14 @@ BuildSVTAV1() {
 
 BuildOpenCV() {
     echo "Compiling OpenCV"
+    cd $source_dir
     opencv_version="4.13.0"
     sudo wget -4 "https://github.com/opencv/opencv/archive/${opencv_version}.zip"
     sudo unzip "${opencv_version}.zip"
     cd "opencv-${opencv_version}" && mkdir -p build || :
     cd build
     cmake -DHAVE_FFMPEG=ON -DWITH_TBB=ON -DENABLE_FAST_MATH=1 -DCUDA_FAST_MATH=1 -DWITH_CUBLAS=1 -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DWITH_V4L=ON -DWITH_QT=OFF -DWITH_OPENGL=ON -DWITH_GSTREAMER=ON -DBUILD_opencv_cudacodec=OFF -DOPENCV_ENABLE_NONFREE=ON -DINSTALL_PYTHON_EXAMPLES=OFF -DINSTALL_C_EXAMPLES=OFF -DBUILD_EXAMPLES=OFF "../"
-    cmake --build .
+    cmake --build . -j ${cpus}
     sudo make install
 
 BuildWhisper() {
