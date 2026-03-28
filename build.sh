@@ -91,7 +91,7 @@ InstallNvidiaSDK() {
 InstallNvCodecIncludes() {
     echo "Installing Nv codec headers"
     cd "$source_dir"
-    git clone https://git.videolan.org/git/ffmpeg/nv-codec-headers.git || :
+    git clone --depth=1 https://git.videolan.org/git/ffmpeg/nv-codec-headers.git || :
     cd nv-codec-headers
     # update stale versions
     git pull origin master
@@ -128,14 +128,14 @@ BuildYasm() {
     tar xzf "${yasm_basename}.tar.gz"
     cd $yasm_basename
     ./configure --prefix="${build_dir}" --bindir="${bin_dir}"
-    make -j${cpus}
+    make -j${cpus} CFLAGS="-std=c17"
     make install
 }
 
 BuildX264() {
     echo "Compiling libx264"
     cd $source_dir
-    git clone https://code.videolan.org/videolan/x264/ || :
+    git clone --depth=1 https://code.videolan.org/videolan/x264/ || :
     cd x264
     CPPFLAGS="-march=native" ./configure --prefix="$build_dir" --bindir="$bin_dir" --enable-pic --enable-shared
     make -j${cpus}
@@ -145,8 +145,8 @@ BuildX264() {
 BuildX265() {
     echo "Compiling libx265"
     cd $source_dir
-    wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/8be7dbf8159d.zip
-    tar xjvf x265.tar.bz2
+    curl -L -o x265.zip https://bitbucket.org/multicoreware/x265_git/get/cfee9638c82b.zip
+    unzip x265.zip
     cd multicoreware*/build/linux
     CPPFLAGS="-march=native" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$build_dir" -DENABLE_SHARED=off -DHIGH_BIT_DEPTH=on -DENABLE_HDR10_PLUS=on ../../source && \
     make -j${cpus}
@@ -230,7 +230,7 @@ BuildDav1d() {
 BuildSVTAV1() {
     echo "Compiling SVT-AV1"
     cd $source_dir
-    git clone --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git || :
+    git clone --branch v4.1.0 --depth=1 https://gitlab.com/AOMediaCodec/SVT-AV1.git || :
     cd SVT-AV1/Build
     # https://github.com/AOMediaCodec/SVT-AV1#1-build-and-install-svt-av1
     CPPFLAGS="-march=native" cmake .. -G"Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
@@ -242,11 +242,23 @@ BuildOpenCV() {
     echo "Compiling OpenCV"
     cd $source_dir
     opencv_version="4.13.0"
-    sudo wget -4 "https://github.com/opencv/opencv/archive/${opencv_version}.zip"
-    sudo unzip "${opencv_version}.zip"
+    wget -4 "https://github.com/opencv/opencv/archive/${opencv_version}.zip"
+    unzip "${opencv_version}.zip"
+    wget -4 "https://github.com/opencv/opencv_contrib/archive/${opencv_version}.zip" -O opencv_contrib-${opencv_version}.zip
+    unzip "opencv_contrib-${opencv_version}.zip"
     cd "opencv-${opencv_version}" && mkdir -p build || :
     cd build
-    cmake -DHAVE_FFMPEG=ON -DWITH_TBB=ON -DENABLE_FAST_MATH=1 -DCUDA_FAST_MATH=1 -DWITH_CUBLAS=1 -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DWITH_V4L=ON -DWITH_QT=OFF -DWITH_OPENGL=ON -DWITH_GSTREAMER=ON -DBUILD_opencv_cudacodec=OFF -DOPENCV_ENABLE_NONFREE=ON -DINSTALL_PYTHON_EXAMPLES=OFF -DINSTALL_C_EXAMPLES=OFF -DBUILD_EXAMPLES=OFF "../"
+    cmake -DWITH_CUDA=ON \
+          -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-13.0 \
+          -DCUDA_CUDART_LIBRARY=/usr/local/cuda-13.0/lib64/libcudart.so \
+          -DOPENCV_EXTRA_MODULES_PATH="../../opencv_contrib-${opencv_version}/modules" \
+          -DHAVE_FFMPEG=ON -DWITH_TBB=ON -DENABLE_FAST_MATH=1 \
+          -DCUDA_FAST_MATH=1 -DWITH_CUBLAS=1 -DWITH_CUDNN=ON \
+          -DOPENCV_DNN_CUDA=ON -DWITH_V4L=ON -DWITH_QT=OFF \
+          -DWITH_OPENGL=ON -DWITH_GSTREAMER=ON \
+          -DBUILD_opencv_cudacodec=OFF -DOPENCV_ENABLE_NONFREE=ON \
+          -DINSTALL_PYTHON_EXAMPLES=OFF -DINSTALL_C_EXAMPLES=OFF \
+          -DBUILD_EXAMPLES=OFF "../"
     cmake --build . -j ${cpus}
     sudo make install
 }
@@ -464,7 +476,7 @@ if [ $1 ]; then
     $1
 else
     # DONT INSTALL DEPS ON 22.04
-    #InstallDependencies
+    InstallDependencies
     InstallNvCodecIncludes
     BuildNasm
     BuildYasm
