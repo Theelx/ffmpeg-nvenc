@@ -145,7 +145,7 @@ BuildX264() {
 BuildX265() {
     echo "Compiling libx265"
     cd $source_dir
-    wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/master.tar.bz2
+    wget -O x265.tar.bz2 https://bitbucket.org/multicoreware/x265_git/get/8be7dbf8159d.zip
     tar xjvf x265.tar.bz2
     cd multicoreware*/build/linux
     CPPFLAGS="-march=native" cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$build_dir" -DENABLE_SHARED=off -DHIGH_BIT_DEPTH=on -DENABLE_HDR10_PLUS=on ../../source && \
@@ -181,7 +181,7 @@ BuildLame() {
 BuildOpus() {
     echo "Compiling libopus"
     cd $source_dir
-    opus_version="1.5.2"
+    opus_version="1.6.1"
     opus_basename="opus-${opus_version}"
     wget -4 "http://downloads.xiph.org/releases/opus/${opus_basename}.tar.gz"
     tar xzf "${opus_basename}.tar.gz"
@@ -199,7 +199,7 @@ BuildVpx() {
     git clone --depth=1 https://github.com/webmproject/libvpx.git || :
     mkdir build || :
     cd build
-    vpx_version="1.15.0"
+    vpx_version="1.15.2"
     vpx_basename="v${vpx_version}"
     vpx_url="https://chromium.googlesource.com/webm/libvpx/+archive/${vpx_basename}.tar.gz"
     wget -4 $vpx_url
@@ -240,20 +240,33 @@ BuildSVTAV1() {
 
 BuildOpenCV() {
     echo "Compiling OpenCV"
-    opencv_version="4.10.0"
+    opencv_version="4.13.0"
     sudo wget -4 "https://github.com/opencv/opencv/archive/${opencv_version}.zip"
     sudo unzip "${opencv_version}.zip"
     cd "opencv-${opencv_version}" && mkdir -p build || :
     cd build
-    cmake -DHAVE_FFMPEG=ON "../"
+    cmake -DHAVE_FFMPEG=ON -DWITH_TBB=ON -DENABLE_FAST_MATH=1 -DCUDA_FAST_MATH=1 -DWITH_CUBLAS=1 -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DWITH_V4L=ON -DWITH_QT=OFF -DWITH_OPENGL=ON -DWITH_GSTREAMER=ON -DBUILD_opencv_cudacodec=OFF -DOPENCV_ENABLE_NONFREE=ON -DINSTALL_PYTHON_EXAMPLES=OFF -DINSTALL_C_EXAMPLES=OFF -DBUILD_EXAMPLES=OFF "../"
     cmake --build .
     sudo make install
+
+BuildWhisper() {
+    echo "Building whisper.cpp"
+    cd "$source_dir"
+    git clone https://github.com/ggml-org/whisper.cpp --depth=1 || :
+    cd whisper.cpp
+    # update stale versions
+    git pull origin master
+    sh ./models/download-ggml-model.sh large-v3-turbo
+    # gpu support for 4xxx series
+    cmake -G "Unix Makefiles" -DCMAKE_INSTALL_PREFIX="$build_dir" -B build -DGGML_CUDA=1
+    cmake --build build --config Release -- -j ${cpus}
+    sudo make install -C build
 }
 
 BuildFFmpeg() {
     echo "Compiling ffmpeg"
     cd $source_dir
-    ffmpeg_version="7.1"
+    ffmpeg_version="8.1"
     if [ ! -f  ffmpeg-${ffmpeg_version}.tar.bz2 ]; then
         wget -4 http://ffmpeg.org/releases/ffmpeg-${ffmpeg_version}.tar.bz2
     fi
@@ -261,9 +274,10 @@ BuildFFmpeg() {
     cd ffmpeg-${ffmpeg_version}
     echo "$build_dir $inc_dir"
     echo "$PKG_CONFIG_PATH"
+    # march=native suggested by https://trac.ffmpeg.org/wiki/CompilationGuide#PerformanceTips
     PKG_CONFIG_PATH="${build_dir}/lib/pkgconfig:$PKG_CONFIG_PATH" ./configure \
         --prefix="$build_dir" \
-        --extra-cflags="-fPIC -m64 -I${inc_dir}" \
+        --extra-cflags="-fPIC -march=native -m64 -I${inc_dir}" \
         --extra-ldflags="-L${build_dir}/lib" \
         --extra-libs="-lpthread" \
         --bindir="$bin_dir" \
@@ -290,7 +304,8 @@ BuildFFmpeg() {
         --enable-librubberband \
         --enable-openssl \
         --enable-libopencv \
-        --extra-ldexeflags=-pie \
+        --enable-whisper \
+        --extra-ldexeflags="-pie" \
         --enable-shared \
         --pkg-config="pkg-config --static --cflags opencv4"
     make -j${cpus}
@@ -460,6 +475,7 @@ else
     BuildDav1d
     BuildSVTAV1
     BuildOpenCV
+    BuildWhisper
     BuildFFmpeg
     if [ "$build_obs" ]; then
         BuildOBS
